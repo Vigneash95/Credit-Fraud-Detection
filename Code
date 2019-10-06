@@ -62,48 +62,48 @@ def clean_hrefs(set_of_hrefs, start,stop):
 
 
 def get_info_from_hrefs(df,href_list):
-    celgenejobsfinal = []
+    jobsfinal = []
     for href in href_list:
-        celgenejobs=[]
+        jobs=[]
         num = (len(df) + 1) 
         hrefpage = requests.get(href)
         hrefsoup = BeautifulSoup(hrefpage.text, "html.parser")
     
         #job title
         h1s= hrefsoup.find(name="h1",attrs={"itemprop":"title"})
-        celgenejobs.append(h1s.text)
+        jobs.append(h1s.text)
     
     
         #location
         loc = hrefsoup.find(name= "li", attrs = {"itemprop":"jobLocation"})   
         try:
-            celgenejobs.append(loc.text.strip())  
+            jobs.append(loc.text.strip())  
         except:
             loc="None"
-            celgenejobs.append(loc)
+            jobs.append(loc)
     
         # Job category
         category = hrefsoup.find(name = "li" , attrs = {"itemprop":"occupationalCategory"})
         try:
-            celgenejobs.append(category.text.strip())
+            jobs.append(category.text.strip())
         except:
             category="None"
-            celgenejobs.append(category)
+            jobs.append(category)
     
         # Requisition id
         reqid = hrefsoup.find(name = "li" , attrs = {"itemprop":"reqId"})
         try:
-            celgenejobs.append(reqid.text.strip())
+            jobs.append(reqid.text.strip())
         except:
             reqid="None"
-            celgenejobs.append(reqid)
+            jobs.append(reqid)
     
         #Summary
         summary = hrefsoup.find(name="p")
-        celgenejobs.append(summary.text)
-        celgenejobsfinal.append(celgenejobs)
+        jobs.append(summary.text)
+        jobsfinal.append(jobs)
     
-    return(celgenejobs_df)
+    return(jobs_df)
 
 def assess(ad_text):
     ad_text = ''.join([i if ord(i) < 128 else ' ' for i in ad_text])
@@ -180,39 +180,27 @@ def summaryresults(summary):
     malelist=male
     femalelist=female
     
-def join(df,table):
-    df['req_id']=df['req_id'].astype(int)
-    table['req_id']=table['req_id'].astype(int)
-
-    # Getting the final table
-    volume2 = table[['req_id','primary_loc','country','region','state','city','hiring_managers','recruiter','supervisory_org','franchise','job_profile','position_name','hr_partner']]
-    final_table1 = pd.merge(df,volume2,how='left',on='req_id')
-    nullfinal_table = final_table1[pd.isnull(final_table1['recruiter'])]
-    final_table = final_table1.dropna()
-    return(final_table)
 
 
-
-celgene_base = 'https://jobs.celgene.com/jobs?page='
-celgene_home = celgene_base + str(1)
+company_base = 'https://jobs."company name".com/jobs?page='
+company_home = company_base + str(1)
 start_word_html = 'totalCount'
 stop_word_html = 'languageCounts'
 start_word_url = 'https'
 stop_word_url = 'lang=en-us'
 columns = ['job_pos_title','location','job_category','req_id','summary']
-celgenejobs_df = pd.DataFrame(celgenejobsfinal,columns=columns)
+jobs_df = pd.DataFrame(jobsfinal,columns=columns)
 pd.options.display.max_colwidth=5000
-summary = celgenejobs_df['summary']
+summary = jobs_df['summary']
 results = []
 explanation=[]
 male=[]
 female=[]
-celgenejobs_df['result']=resultslist
-celgenejobs_df['explanation']=explanationlist
-celgenejobs_df['masculine_coded_words']= malelist
-celgenejobs_df['feminine_coded_words']=femalelist
-conn = pyodbc.connect('DSN=Cloudera-Prod;UID=vmuthukrishnan;PWD=', autocommit = True)
-volume=pd.read_sql("select * from exp_workforce_analytics.volume_clean_daily",conn)
+jobs_df['result']=resultslist
+jobs_df['explanation']=explanationlist
+jobs_df['masculine_coded_words']= malelist
+jobs_df['feminine_coded_words']=femalelist
+
 feminine_coded_words = [
     "agree",
     "affectionate",
@@ -321,12 +309,11 @@ masculine_coded_words = [
 
 
 
-page_count = find_num_job_pages(celgene_home,start_word_html,stop_word_html)
-job_batch_list = get_job_batch_urls(page_count, celgene_base)
+page_count = find_num_job_pages(company_home,start_word_html,stop_word_html)
+job_batch_list = get_job_batch_urls(page_count, company_base)
 hrefs_dirty = get_all_job_hrefs(job_batch_list)
 hrefs_clean = clean_hrefs(hrefs_dirty, start_word_url,stop_word_url)
-celgenejobs_df = get_info_from_hrefs(celgenejobs_df,hrefs_clean)
+jobs_df = get_info_from_hrefs(jobs_df,hrefs_clean)
 summaryresults(summary)
-final_table=join(celgenejobs_df,volume)
 pd.options.display.max_colwidth=100
 final_table

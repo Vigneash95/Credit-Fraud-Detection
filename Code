@@ -1,0 +1,77 @@
+import pandas as pd
+df = pd.read_csv("creditcard.csv")
+
+#Scale the Time and Amount columns so that they are in the same range as the rest of the columns
+from sklearn.preprocessing import StandardScaler, RobustScaler
+std_scaler = StandardScaler()
+rob_scaler = RobustScaler()
+
+df['scaled_amount'] = rob_scaler.fit_transform(df['Amount'].values.reshape(-1,1)) # created new columns scaled_amount and scaled_time
+df['scaled_time'] = rob_scaler.fit_transform(df['Time'].values.reshape(-1,1))
+
+df.drop(['Time','Amount'], axis=1, inplace=True)
+
+scaled_amount = df['scaled_amount']
+scaled_time = df['scaled_time']
+
+df.drop(['scaled_amount', 'scaled_time'], axis=1, inplace=True)
+df.insert(0, 'scaled_amount', scaled_amount)
+df.insert(1, 'scaled_time', scaled_time)
+
+df.head()
+
+X = df.drop('Class', axis=1) 
+y = df['Class']
+from sklearn.model_selection import train_test_split
+original_Xtrain, original_Xtest, original_ytrain, original_ytest = train_test_split(X, y, test_size=0.2, random_state=42)
+
+#converting to an array
+original_Xtrain = original_Xtrain.values
+original_Xtest = original_Xtest.values
+original_ytrain = original_ytrain.values
+original_ytest = original_ytest.values
+
+df = df.sample(frac=1) # returns a random sample of data ( if f=.25, it would have returned 25% random sample data is generated)
+fraud_df = df.loc[df['Class'] == 1]
+non_fraud_df = df.loc[df['Class'] == 0][:492]
+
+new_df = pd.concat([fraud_df, non_fraud_df])
+
+X = new_df.drop('Class', axis=1)
+y = new_df['Class']
+from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+X_train = X_train.values
+X_test = X_test.values
+y_train = y_train.values
+y_test = y_test.values
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.tree import DecisionTreeClassifier
+classifiers = {
+    "LogisiticRegression": LogisticRegression(),
+    "KNearest": KNeighborsClassifier(),
+    "DecisionTreeClassifier": DecisionTreeClassifier()
+}
+
+logisticregr = LogisticRegression()
+logisticregr.fit(X_train, y_train)
+score = logisticregr.score(X_test, y_test)
+print(score)
+
+knn = KNeighborsClassifier(n_neighbors=5)
+knn.fit(X_train, y_train)
+score = knn.score(X_test,y_test)
+print(score)
+
+decision_tree = DecisionTreeClassifier()
+decision_tree.fit(X_train,y_train)
+score = decision_tree.score(X_test,y_test)
+print(score)
+
+fraud = df.loc[df['Class'] == 1]
+print(fraud.shape)
+
+total = sum(fraud['Amount'])
